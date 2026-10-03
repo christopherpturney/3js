@@ -1,0 +1,521 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>APCO parking lot repair sequence</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Overpass:wght@400;600;700&family=Overpass+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#F6F7F8;--ink:#121417;--g1:#8A9096;--g2:#C9CDD1;--y:#F2B705;--blue:#2F6DB5;
+  --sans:'Overpass','Arial Narrow',Arial,sans-serif;--mono:'Overpass Mono',ui-monospace,Menlo,monospace}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--ink);font:400 14px/1.35 var(--sans);-webkit-text-size-adjust:100%}
+body{overflow-x:hidden}
+#sheet{position:relative;height:100vh;height:100svh;min-height:420px;overflow:hidden}
+#sheet::before{content:"";position:absolute;inset:10px;border:1px solid var(--g2);pointer-events:none;z-index:3}
+#draw{position:absolute;inset:0;touch-action:none;cursor:grab}
+#draw.grab{cursor:grabbing}
+#svg{position:absolute;inset:0;width:100%;height:100%;display:block}
+#svg text{font-family:var(--mono)}
+button{font:600 11px/1 var(--mono);letter-spacing:.07em;text-transform:uppercase;color:var(--ink);background:var(--bg);
+  border:1px solid var(--ink);border-radius:0;padding:0 12px;min-height:34px;cursor:pointer}
+button[aria-pressed=true]{background:var(--y)}
+button:focus-visible,input:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
+label,.lb{font:400 9px/1 var(--mono);letter-spacing:.09em;text-transform:uppercase;color:var(--g1);display:block;margin-bottom:5px}
+.mono{font-family:var(--mono)}
+
+/* controls */
+#ctl{position:absolute;left:20px;bottom:20px;width:min(430px,calc(100% - 410px));min-width:300px;z-index:4}
+#row1,#row3{display:flex;align-items:center;gap:8px}
+#row3{flex-wrap:wrap}
+#row1{margin-bottom:6px}
+#play{min-width:78px}
+#stg{font:600 12px/1.2 var(--mono);letter-spacing:.05em;text-transform:uppercase;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#tm{font:400 11px var(--mono);color:var(--g1);font-variant-numeric:tabular-nums}
+.scrub{position:relative;height:44px}
+.trk{position:absolute;left:6px;right:6px;top:11px;height:2px;background:var(--g2)}
+#fill{display:block;height:100%;width:0;background:var(--ink)}
+#rng{position:absolute;left:0;right:0;top:0;width:100%;height:24px;margin:0;background:transparent;-webkit-appearance:none;appearance:none;cursor:pointer}
+#rng::-webkit-slider-runnable-track{height:24px;background:transparent}
+#rng::-moz-range-track{height:24px;background:transparent}
+#rng::-webkit-slider-thumb{-webkit-appearance:none;width:12px;height:22px;background:var(--ink);border:1px solid var(--ink);border-radius:0;margin-top:1px}
+#rng::-moz-range-thumb{width:10px;height:20px;background:var(--ink);border:1px solid var(--ink);border-radius:0}
+#rng:active::-webkit-slider-thumb{background:var(--y)}
+#rng:active::-moz-range-thumb{background:var(--y)}
+#ticks{position:absolute;left:6px;right:6px;top:24px;height:20px}
+.tk{position:absolute;top:0;transform:translateX(-50%);min-height:0;border:0;background:none;padding:8px 4px 0;
+  font:400 10px/1 var(--mono);color:var(--g1);letter-spacing:.04em}
+.tk::before{content:"";position:absolute;left:50%;top:0;width:1px;height:7px;background:var(--ink)}
+.tk.on{color:var(--ink);font-weight:600;background:none}
+#row3 button{flex:0 0 auto}
+
+/* title block */
+#tb{position:absolute;right:20px;bottom:20px;width:350px;z-index:4;display:grid;grid-template-columns:1fr 1fr 64px;gap:1px;
+  background:var(--ink);border:2px solid var(--ink)}
+#tb .c{background:var(--bg);padding:6px 9px 7px;min-width:0}
+#tb .w2{grid-column:2/4}#tb .w3{grid-column:1/4}#tb .c:nth-child(3){grid-column:3;grid-row:1/3}#tb .c:nth-child(4){grid-column:1/3}#tb .c:nth-child(5){grid-column:1}#tb .c:nth-child(6){grid-column:2/4}
+#tb b{font:600 13px/1.25 var(--sans);display:block}
+#tb .nm{font:400 11px/1.3 var(--sans);color:var(--ink);display:block;margin-top:2px;text-transform:uppercase;letter-spacing:.04em}
+#sid{font:600 15px/1.2 var(--mono)!important}
+#scv{font:400 14px/1.3 var(--sans);min-height:19px;white-space:nowrap}
+#scv m{font:600 15px/1.3 var(--mono);font-style:normal;font-variant-numeric:tabular-nums}
+#note{font:400 11px/1.35 var(--sans)}
+#tb #na{display:flex;align-items:center;justify-content:center;padding:2px}
+
+
+@media (max-width:900px) and (min-width:641px){#ctl{width:min(430px,calc(100% - 390px))}}
+/* actions panel: what Pavement Pros does at each step (wording from the proposal) */
+#act{position:absolute;top:24px;right:24px;width:380px;z-index:4;background:var(--bg);border:2px solid var(--ink);padding:16px 18px 18px;min-height:212px}
+#act .k{font:600 11px/1 var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--g1)}
+#act h2{font:700 30px/1.08 var(--sans);margin:8px 0 12px;letter-spacing:-.005em}
+#act ol{list-style:none;margin:0;padding:0;display:grid;gap:7px}
+#act li{font:600 17px/1.25 var(--sans);color:var(--g2);display:grid;grid-template-columns:14px 1fr;gap:10px;align-items:baseline;transition:color .25s}
+#act li::before{content:"";width:10px;height:10px;border:1.5px solid currentColor;transform:translateY(-1px)}
+#act li.on{color:var(--ink)}#act li.on::before{background:var(--y);border-color:var(--ink)}
+#act li.done{color:var(--ink)}#act li.done::before{background:var(--ink);border-color:var(--ink)}
+#act .tag{display:inline-block;margin-top:12px;font:600 10px/1 var(--mono);letter-spacing:.1em;text-transform:uppercase;border:1px solid var(--ink);padding:5px 7px}
+#act .tag[hidden]{display:none}
+@media (max-width:999px) and (min-width:641px){#act{left:24px;right:24px;width:auto;min-height:0}#act h2{font-size:24px}#act ol{grid-auto-flow:column;grid-auto-columns:1fr}#act li{font-size:15px}}
+@media (max-width:640px){
+  #act{position:static;margin:16px 16px 8px;min-height:0;padding:12px 14px 14px}#act h2{font-size:22px}#act li{font-size:15px}
+  #sheet{height:auto;min-height:0;overflow:visible}
+  #sheet::before{display:none}
+  #draw{position:relative;inset:auto;height:50vh;min-height:340px}
+  #ctl,#tb{position:static;width:auto;min-width:0;margin:0 16px}
+  #ctl{margin-top:8px}
+  #tb{margin-top:14px;margin-bottom:16px}
+  #stg{font-size:11px}
+}
+</style>
+</head>
+<body>
+<main id="sheet">
+  <section id="act" aria-live="polite" aria-label="What Pavement Pros does at this step">
+    <div class="k" id="actK">Step 1 of 5</div><h2 id="actH">Existing conditions</h2><ol id="actL"></ol>
+    <span class="tag" id="actT" hidden>Listed in proposal, not priced</span>
+  </section>
+  <div id="draw">
+    <svg id="svg" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Simplified axonometric diagram of the parking lot repair sequence">
+      <defs>
+        <pattern id="hatchY" width="7" height="7" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+          <rect width="7" height="7" fill="#F2B705" fill-opacity=".35"/><line x1="0" y1="0" x2="0" y2="7" stroke="#121417" stroke-opacity=".55" stroke-width="1"/>
+        </pattern>
+        <pattern id="hatchB" width="5" height="5" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+          <line x1="0" y1="0" x2="0" y2="5" stroke="#2F6DB5" stroke-width="1.2"/>
+        </pattern>
+        <pattern id="hatchW" width="5" height="5" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+          <line x1="0" y1="0" x2="0" y2="5" stroke="#fff" stroke-width="1.2"/>
+        </pattern>
+        <pattern id="roofTex" width="9" height="9" patternUnits="userSpaceOnUse">
+          <rect width="9" height="9" fill="#8E9297"/><circle cx="2" cy="3" r=".7" fill="#80848A"/><circle cx="6.5" cy="6.5" r=".6" fill="#9DA1A6"/><circle cx="5.5" cy="1.5" r=".5" fill="#83878C"/><circle cx="1.5" cy="7.5" r=".5" fill="#999DA2"/>
+        </pattern>
+      </defs>
+      <g id="gB"></g>
+      <text id="meas" x="-999" y="-999" font-size="10" visibility="hidden">MMMMMMMMMMMMMMMMMMMM</text>
+    </svg>
+  </div>
+
+  <section id="ctl" aria-label="Playback controls">
+    <div id="row1"><button id="play" type="button" aria-pressed="true">Pause</button><div id="stg">Step 1 · Existing conditions</div><div id="tm">00.0 s</div></div>
+    <div class="scrub"><div class="trk"><i id="fill"></i></div>
+      <input id="rng" type="range" min="0" max="24" step="0.1" value="0" aria-label="Timeline position">
+      <div id="ticks"></div></div>
+    <div id="row3"><button id="addons" type="button" aria-pressed="true">Unpriced items on</button><button id="rv" type="button" title="Drag to orbit, shift- or right-drag to pan, scroll to zoom, double-click to reset">Reset view</button></div>
+  </section>
+
+  <section id="tb" aria-label="Title block">
+    <div class="c"><span class="lb">Contractor</span><b>Pavement Pros LLC</b></div>
+    <div class="c"><span class="lb">Owner</span><b>APCO</b></div>
+    <div class="c" id="na"><svg width="56" height="56" viewBox="-29 -29 58 58" aria-label="North arrow"><g id="nrt">
+      <circle r="19" fill="none" stroke="#121417" stroke-width="1"/><path d="M0-17L5 5 0 2z" fill="#121417"/><path d="M0-17L-5 5 0 2z" fill="#F6F7F8" stroke="#121417" stroke-width="1"/>
+      <text y="-22" text-anchor="middle" font-family="Overpass Mono,monospace" font-size="9" font-weight="600" fill="#121417">N</text></g></svg></div>
+    <div class="c w2"><span class="lb">Project</span><b>243 Route 130, Bordentown NJ</b></div>
+    <div class="c"><span class="lb">Step</span><b id="sid">1 of 5</b><span class="nm" id="snm">Existing conditions</span></div>
+    <div class="c w2"><span class="lb">Date</span><b class="mono" style="font-size:13px">2026-10-02</b></div>
+    <div class="c w3"><span class="lb" id="scl">Scope</span><div id="scv">&nbsp;</div></div>
+    <div class="c w3"><span class="lb">Note</span><div id="note">Repair areas approximate; field verify. Not to scale.</div></div>
+  </section>
+</main>
+
+<script type="application/json" id="lite-data">{"theta":-33.6,"prop":[[-168.5,223],[139,235],[167.5,-119.5],[-187.5,-177]],"bld":[[-72,52.5],[13,52.5],[13,73],[36,73],[36,68],[75,68],[75,21],[40.5,21],[40.5,-17.5],[15,-17.5],[15,-73.5],[-72,-73.5],[-72,-5],[-80,-5],[-80,20],[-72,20]],"can":[[74,48],[122,48],[122,75],[74,75]],"enc":[[110,-24],[124,-24],[124,-38],[110,-38]],"walks":[[[-89,57.5],[0,57.5],[13,69],[13,52.5],[-72,52.5],[-72,20],[-80,20],[-80,-5],[-72,-5],[-72,-73.5],[15,-73.5],[15,-81],[-80,-81],[-80,-38],[-89,-38]],[[40.5,21],[78,21],[78,-20],[72.5,-20],[72.5,1],[46,1],[46,-15],[20,-45],[18,-45],[18,-60],[15,-60],[15,-17.5],[40.5,-17.5]],[[-29,-81],[-12.5,-81],[-12.5,-89],[-29,-89]],[[101,-20.5],[125,-20.5],[125,-39],[101,-39]],[[0,87.5],[7.5,87.5],[7.5,98.5],[0,98.5]]],"isl":[[[-141,187.5],[-140,189.5],[-138,190.5],[-115,190.5],[-112,188.5],[-112.5,185.5],[-114,184],[-129,184],[-131.5,182],[-130.5,88],[-128.5,85],[-109.5,84.5],[-108,83],[-108,80],[-110,77],[-144,77],[-145.5,77.5],[-147,79.5]],[[-88,188],[-87,186],[-84.5,185],[-49.5,186],[-47,187.5],[-46,190],[-47,192],[-49.5,193],[-84.5,192],[-87,190.5]],[[-22,189],[-21,187],[-18.5,186],[14.5,187],[17,188],[18,191],[17,193],[14.5,194],[-18.5,193],[-21,192]],[[38,189],[39.5,186],[42,185],[61,186],[63,187],[64,190],[62.5,193],[60,194],[41,193],[39,192]],[[-85,81.5],[-83.5,79],[-81,78],[-42.5,82],[-40,83],[-39,85.5],[-40.5,88],[-43,89],[-81.5,85],[-84,84]],[[-20,83],[-18.5,81],[-15.5,80.5],[21.5,91.5],[24,93.5],[24,96],[22.5,98],[19.5,98.5],[-17.5,87.5],[-20,85.5]],[[65.5,162],[66.5,164],[68.5,165],[70.5,164],[71.5,162],[77,83],[76.5,81],[74,80],[72,81],[71,83]],[[102,182],[103,185],[105.5,186],[129,187.5],[133.5,184],[138.5,126],[137.5,123],[134.5,120.5],[116.5,120],[108.5,127]],[[-140,51.5],[-138,48.5],[-117,47.5],[-115,48.5],[-114,50.5],[-116,53.5],[-137,54.5],[-139,53.5]],[[-147,-45],[-145,-48],[-124,-49],[-122,-48],[-121,-46],[-123,-43],[-144,-42],[-146,-43]],[[-137,-120],[-136,-118],[-134,-117],[-114,-117],[-112,-119],[-112,-127],[-114.5,-129.5],[-130,-131],[-155.5,-137],[-157.5,-136.5],[-157.5,-135],[-156.5,-134],[-138,-127.5],[-137,-126]],[[-30,-113],[-29,-115],[-27,-115.5],[10,-113.5],[12,-112.5],[12.5,-110],[11.5,-108],[9.5,-107.5],[-27.5,-109.5],[-29.5,-110.5]],[[91,1.5],[91.5,3.5],[93.5,4.5],[129,9.5],[130.5,9],[136,4],[140,-83],[138.5,-85],[128,-91.5],[108,-93.5],[106,-92.5],[105.5,-90.5],[105,-74.5],[106,-72.5],[107.5,-71.5],[123.5,-69.5],[126,-67],[126,-23],[123,-21],[92.5,-19.5],[91,-17]]],"land":[[[-130,221],[-129,223.5],[-126,225],[41,231.5],[44,230],[45,227.5],[44.5,222.5],[41,220.5],[-126,214],[-129.5,216]],[[70,229.5],[71,231.5],[73,232.5],[138,235],[140,233],[151,201.5],[149,200],[146.5,201],[145,207.5],[142.5,209],[78,209],[70,215.5]],[[145.5,200],[152,200],[170.5,-112],[161,-112]],[[-187.5,-177],[130,-125.5],[130,-115],[-187.5,-152]],[[-169,214],[-162.5,214],[-181.5,-150],[-186,-150]]],"zones":[{"l":"East drive lane","c":10,"s":254,"p":[[[145.5,-91],[141,-89],[139,-84.5],[133,126.5],[133,184.5],[136,189.5],[142,191],[151.5,84],[159,-83.5],[155.5,-90]]],"a":[146,0]},{"l":"Main entrance","c":13,"s":217,"p":[[[67.5,189],[2.5,192],[-2.5,196],[-3.5,202.5],[0.5,207.5],[29,220],[42,220.5],[44.5,222.5],[45,227],[52,230],[58.5,230],[70,225.5],[70.5,215],[77.5,209.5],[102,209],[108.5,201.5],[108.5,194],[104,190]]],"a":[43,212.5]},{"l":"West drive aisle","c":3,"s":170,"p":[[[-163.5,-49],[-169.5,-45.5],[-170.5,-38.5],[-167.5,116],[-166.5,143.5],[-162.5,146.5],[-155,147],[-150.5,145.5],[-148.5,142],[-147,110.5],[-152.5,-42],[-155.5,-48]]],"a":[-159.5,36]},{"l":"Municipal Dr entrance","c":3,"s":60,"p":[[[136.5,-124.5],[132.5,-123],[130,-119],[129.5,-95.5],[134,-90.5],[143,-90],[147,-92.5],[155,-104.5],[156,-111.5],[145.5,-123]]],"a":[142.5,-108]},{"l":"Drive-thru","c":4,"s":53,"p":[[[106.5,6],[86,7.5],[81.5,10],[80,14],[80,29.5],[83,35],[95.5,41.5],[103,41.5],[122.5,31.5],[124,27],[123,21],[114,8]]],"a":[101.5,24]},{"l":"East door","c":1,"s":24,"p":[[[80.5,-22],[76,-20],[78,-20],[78,3.5],[83.5,4],[87.5,2.5],[89.5,-1],[90,-15.5],[87,-21]]],"a":[84,-8.5]},{"l":"Front parking","c":1,"s":9,"p":[[[-106,-4.5],[-112,0],[-112,8],[-107.5,12],[-100,12],[-96,7.5],[-96,0],[-100,-4]]],"a":[-104,3.5]}],"str":{"stall":[[[-130,174],[-114,174]],[[-130,164],[-114,164]],[[-130,154],[-114,154]],[[-130,144],[-114,144]],[[-130,134],[-114,134]],[[-130,124],[-114,124]],[[-130,114],[-114,114]],[[-130,104],[-114,104]],[[-130,94],[-114,94]],[[-85,175],[-49,175]],[[-85,165],[-49,165]],[[-85,155],[-49,155]],[[-85,145],[-49,145]],[[-85,135],[-49,135]],[[-85,125],[-49,125]],[[-85,115],[-49,115]],[[-85,105],[-49,105]],[[-85,95],[-49,95]],[[-19,177.5],[20,177.5]],[[-19,167.5],[20,167.5]],[[-19,157.5],[20,157.5]],[[-19,147.5],[20,147.5]],[[-19,137.5],[20,137.5]],[[-19,127.5],[20,127.5]],[[-19,117.5],[20,117.5]],[[-19,107.5],[20,107.5]],[[-19,97.5],[20,97.5]],[[47.5,175],[64,175]],[[47.5,166],[64,166]],[[47.5,157.5],[64,157.5]],[[47.5,149],[64,149]],[[47.5,140],[64,140]],[[47.5,131],[64,131]],[[47.5,122.5],[64,122.5]],[[47.5,114],[64,114]],[[47.5,105],[64,105]],[[47.5,96],[64,96]],[[-147,39.5],[-111,38]],[[-147.5,29.5],[-111.5,28]],[[-147.5,19.5],[-112,18]],[[-148,9.5],[-112,8]],[[-148.5,-0.5],[-112.5,-2]],[[-149,-10.5],[-113,-12]],[[-149.5,-20.5],[-113.5,-22]],[[-151,-55],[-115,-57]],[[-151.5,-65],[-115.5,-67]],[[-151.5,-75],[-115.5,-76.5]],[[-152,-85],[-116,-86.5]],[[-152.5,-95],[-116.5,-96.5]],[[-153,-105],[-117,-106.5]],[[-153.5,-115],[-117.5,-116.5]],[[-92.5,-47.5],[-80,-47.5]],[[-92.5,-56.5],[-80,-56.5]],[[-92.5,-65],[-80,-65]],[[-92.5,-74],[-80,-74]],[[-92.5,-82.5],[-56,-82.5]],[[-92.5,-91.5],[-56,-91.5]],[[-92.5,-100.5],[-56,-100.5]],[[-92.5,-109],[-56,-109]],[[-92.5,-118],[-56,-118]],[[-28,-91],[7,-91]],[[-28,-100],[7,-100]],[[55,-47.5],[75,-47.5]],[[40,-56],[75,-56]],[[40,-64],[75,-64]],[[40,-72],[75,-72]],[[40,-80.5],[75,-80.5]],[[40,-88.5],[75,-88.5]],[[54,1],[54,-18]],[[62.5,1],[62.5,-18]]],"div":[[[-67.5,184],[-67.5,95]],[[-1,180],[-1,97.5]],[[-73,-84],[-73,-118]],[[-12.5,-84],[-12.5,-108]],[[57.5,-47.5],[57.5,-95]]],"dash":[[[-129,47],[-136,-118]]],"ada":{"sp":[[[[-149.5,-20.5],[-132,-21]],[[-149.5,-28.5],[-132,-29]]],[[[-132,-21],[-113.5,-22]],[[-132,-29],[-114,-30]]],[[[-150,-34.5],[-132.5,-35]],[[-150.5,-43.5],[-133,-44]]],[[[-132.5,-35],[-114,-36]],[[-133,-44],[-114.5,-45]]],[[[47.5,105],[64,105]],[[47.5,96],[64,96]]]],"ai":[[[50,87],[64,87],[64,96],[50,96]]]},"cw":[[-150,-29.5],[-88,-28],[-88,-34],[-150,-35]],"np":[[[40,-47.5],[55,-47.5],[40,-58]]]}}</script>
+<script>
+(()=>{
+'use strict';
+window.__errors=[];window.__frames=0;
+addEventListener('error',e=>__errors.push(String(e.message)));
+addEventListener('unhandledrejection',e=>__errors.push('promise: '+e.reason));
+
+const D=JSON.parse(document.getElementById('lite-data').textContent);
+const NS='http://www.w3.org/2000/svg',$=id=>document.getElementById(id);
+const INK='#121417',YEL='#F2B705',BLU='#2F6DB5';
+const clamp=(x,a=0,b=1)=>x<a?a:x>b?b:x,ease=t=>t*t*(3-2*t),seg=(t,a,d)=>clamp((t-a)/d);
+const r3=v=>Math.round(v*1000)/1000,f1=n=>Math.round(n*10)/10;
+function mk(parent,tag,attrs){const e=document.createElementNS(NS,tag);if(attrs)for(const k in attrs)e.setAttribute(k,attrs[k]);parent.appendChild(e);return e}
+function S(e,k,v){const c=e._c||(e._c={});if(c[k]!==v){c[k]=v;e.setAttribute(k,v)}}
+
+/* ---------- timeline ---------- */
+const STAGES=[
+  {id:'Step 1',nm:'Existing conditions',t0:0},
+  {id:'Step 2',nm:'Repair areas',t0:4},
+  {id:'Step 3',nm:'Asphalt repair: cut & replace',t0:9},
+  {id:'Step 4',nm:'Crack fill + sealcoating',t0:14,add:1},
+  {id:'Step 5',nm:'Line striping',t0:19,add:1}];
+const ACTS=[   // from the proposal: Project Overview, Services (Asphalt Repair: Cut & Replace), Site Photos
+  {h:'Evaluate the property',a:['Inspect pavement condition','Photograph and measure failed areas']},
+  {h:'Mark repair areas',a:['35 areas, 787 SF','Combine nearby small repairs into one']},
+  {h:'Asphalt repair: cut & replace',a:['Saw-cut clean, straight edges','Remove and dispose of failed asphalt','Install and compact new asphalt']},
+  {h:'Crack fill + sealcoating',a:['Crack fill','Sealcoating'],np:1},
+  {h:'Line striping',a:['Restripe parking stalls','Restripe handicap spaces (ADA)'],np:1}];
+const HOLD=3,FADE=.45;
+let addons=true,T=0,playing=true,raf=0,last=0,dur=24;
+const stageAt=t=>t<4?0:t<9?1:(t<14||!addons)?2:t<19?3:4;
+const lift=t=>ease(seg(t,2,1.8));
+
+/* ---------- view: fixed axonometric (plan rotated, y compressed, z up) ---------- */
+const BH=30,CZ=13;
+const CAM={az:-35,el:33.4,zoom:1,px:0,py:0},CAM0=Object.assign({},CAM);let viewVer=0;   // drag to orbit, wheel to zoom
+const NORTH=[-Math.sin(D.theta*Math.PI/180),Math.cos(D.theta*Math.PI/180)];
+let W=0,H=0,AREA={l:0,t:0,r:0,b:0},RES=[],V={},sizeVer=0,mono=6;
+const svg=$('svg');
+// Framing is solved once per window size (flat plan and default 3/4 view), then held steady:
+// the lift interpolates between the two fits and orbiting turns the lot about its centre at a
+// constant scale, so nothing jumps between frames.
+const CEN=(()=>{let x=0,y=0;D.prop.forEach(p=>{x+=p[0];y+=p[1]});return[x/D.prop.length,y/D.prop.length]})();
+let FIT=null;
+function proj(az,el,L){const R=Math.PI/180,phi=az*R*L,k=1-(1-Math.sin(el*R))*L,zs=Math.cos(el*R)*L;return{c:Math.cos(phi),s:Math.sin(phi),k,zs}}
+function solveFit(L){
+  const{c,s,k,zs}=proj(CAM0.az,CAM0.el,L);
+  let x0=1e9,x1=-1e9,y0=1e9,y1=-1e9;
+  const add=(p,z)=>{const u=p[0]*c-p[1]*s,v=(p[0]*s+p[1]*c)*k+z*zs;if(u<x0)x0=u;if(u>x1)x1=u;if(v<y0)y0=v;if(v>y1)y1=v};
+  D.prop.forEach(p=>add(p,0));D.bld.forEach(p=>add(p,BH));
+  const aw=AREA.r-AREA.l,ah=AREA.b-AREA.t,sc0=Math.min(aw/(x1-x0),ah/(y1-y0));
+  const edge=[];for(let i=0;i<D.prop.length;i++){const a=D.prop[i],b=D.prop[(i+1)%D.prop.length];for(let t=0;t<1;t+=.05)edge.push([a[0]+(b[0]-a[0])*t,a[1]+(b[1]-a[1])*t,0])}
+  D.bld.forEach(p=>edge.push([p[0],p[1],BH]));
+  let out=null;
+  for(let f=1;f>=.5;f-=.005){   // shrink (and slide up-left) until the lot clears the title block and controls
+    const sc=sc0*f,ox=AREA.l+aw/2-sc*(x0+x1)/2-(1-f)*aw*.35,oy=AREA.t+ah/2+sc*(y0+y1)/2-(1-f)*ah*.3;
+    const u0=CEN[0]*c-CEN[1]*s,v0=(CEN[0]*s+CEN[1]*c)*k;out={sc,ax:u0*sc+ox,ay:oy-v0*sc};
+    if(!edge.some(p=>{const u=p[0]*c-p[1]*s,v=(p[0]*s+p[1]*c)*k+p[2]*zs,X=u*sc+ox,Y=oy-v*sc;return RES.some(r=>X>r.x-8&&X<r.x+r.w+8&&Y>r.y-8&&Y<r.y+r.h+8)}))break}
+  return out}
+function setView(L){
+  if(!FIT||FIT.ver!==sizeVer)FIT={ver:sizeVer,f0:solveFit(0),f1:solveFit(1)};
+  const{c,s,k,zs}=proj(CAM.az,CAM.el,L),e=L,lerp=(a,b)=>a+(b-a)*e;
+  const cx=(AREA.l+AREA.r)/2,cy=(AREA.t+AREA.b)/2;
+  const sc=lerp(FIT.f0.sc,FIT.f1.sc)*CAM.zoom,
+        ax=cx+(lerp(FIT.f0.ax,FIT.f1.ax)-cx)*CAM.zoom+CAM.px,ay=cy+(lerp(FIT.f0.ay,FIT.f1.ay)-cy)*CAM.zoom+CAM.py;
+  const u0=CEN[0]*c-CEN[1]*s,v0=(CEN[0]*s+CEN[1]*c)*k;
+  V={c,s,k,zs,sc,ox:ax-u0*sc,oy:ay+v0*sc};
+  // north arrow: true north pushed through the same projection
+  const du=NORTH[0]*c-NORTH[1]*s,dv=(NORTH[0]*s+NORTH[1]*c)*k;
+  S($('nrt'),'transform','rotate('+f1(Math.atan2(du,dv)*180/Math.PI)+')');
+}
+function P(x,y,z){const u=x*V.c-y*V.s,v=(x*V.s+y*V.c)*V.k+(z||0)*V.zs;return[u*V.sc+V.ox,V.oy-v*V.sc]}
+function pd(poly,z,close){let s='';for(let i=0;i<poly.length;i++){const q=P(poly[i][0],poly[i][1],z);s+=(i?'L':'M')+f1(q[0])+' '+f1(q[1])}return close===false?s:s+'Z'}
+function pts(poly){let s='';for(const p of poly){const q=P(p[0],p[1],0);s+=f1(q[0])+','+f1(q[1])+' '}return s}
+const bbox=poly=>{let a=1e9,b=1e9,c=-1e9,d=-1e9;for(const p of poly){a=Math.min(a,p[0]);c=Math.max(c,p[0]);b=Math.min(b,p[1]);d=Math.max(d,p[1])}return[a,b,c,d]};
+const chaikin=(p,n)=>{for(;n>0;n--){const o=[];for(let i=0;i<p.length;i++){const a=p[i],b=p[(i+1)%p.length];o.push([.75*a[0]+.25*b[0],.75*a[1]+.25*b[1]],[.25*a[0]+.75*b[0],.25*a[1]+.75*b[1]])}p=o}return p};
+const inPoly=(x,y,poly)=>{let c=false;for(let i=0,j=poly.length-1;i<poly.length;j=i++){const a=poly[i],b=poly[j];if((a[1]>y)!==(b[1]>y)&&x<(b[0]-a[0])*(y-a[1])/(b[1]-a[1])+a[0])c=!c}return c};
+
+/* ---------- plan-space helpers (built once) ---------- */
+// property dash-dot, in plan feet
+const propRuns=(()=>{const ring=D.prop,cum=[0];
+  for(let i=0;i<ring.length;i++){const a=ring[i],b=ring[(i+1)%ring.length];cum.push(cum[i]+Math.hypot(b[0]-a[0],b[1]-a[1]))}
+  const total=cum[ring.length];
+  const at=s=>{let i=0;while(i<ring.length-1&&cum[i+1]<s)i++;const a=ring[i],b=ring[(i+1)%ring.length],t=(s-cum[i])/(cum[i+1]-cum[i]||1);return[a[0]+(b[0]-a[0])*t,a[1]+(b[1]-a[1])*t]};
+  const sub=(sa,sb)=>{const o=[at(sa)];for(let i=1;i<ring.length;i++)if(cum[i]>sa&&cum[i]<sb)o.push(ring[i]);o.push(at(sb));return o};
+  const runs=[];for(let s=0;s<total;s+=26){runs.push([s,Math.min(s+14,total)]);if(s+19<total)runs.push([s+19,Math.min(s+21,total)])}
+  return{total,runs,sub}})();
+// zones: largest first, soft outlines
+const ZN=D.zones.map(z=>{const polys=z.p.map(p=>chaikin(p,2)),all=[].concat(...polys),b=bbox(all);
+  return{z,polys,b,axis:(b[2]-b[0])>=(b[3]-b[1])?0:1,
+    name:z.l,txt:z.l+' · '+z.c+(z.c===1?' area':' areas')+' · '+z.s+' SF',sub:z.c+(z.c===1?' area':' areas')+' · '+z.s+' SF'}});
+{const rnd=(s=>()=>{s=(s*1664525+1013904223)>>>0;return s/4294967296})(20261003);
+  ZN.forEach(zn=>{const inside=(x,y)=>zn.polys.some(p=>inPoly(x,y,p)),b=zn.b,lines=[];
+    const n=Math.max(2,Math.round(Math.sqrt((b[2]-b[0])*(b[3]-b[1]))/7));
+    const walk=(x,y,ang,len,depth)=>{const pts=[[x,y]];
+      for(let i=0;i<len;i++){ang+=(rnd()-.5)*.9;const st=2+rnd()*2.5,nx=x+Math.cos(ang)*st,ny=y+Math.sin(ang)*st;if(!inside(nx,ny))break;
+        x=nx;y=ny;pts.push([x,y]);if(depth<1&&rnd()<.16)walk(x,y,ang+(rnd()<.5?1:-1)*(.8+rnd()*.7),Math.floor(len*.5),depth+1)}
+      if(pts.length>1)lines.push(pts)};
+    for(let k=0,tries=0;k<n&&tries<n*30;tries++){const x=b[0]+rnd()*(b[2]-b[0]),y=b[1]+rnd()*(b[3]-b[1]);if(!inside(x,y))continue;k++;
+      const a0=rnd()*Math.PI*2;walk(x,y,a0,6+Math.floor(rnd()*6),0);walk(x,y,a0+Math.PI,4+Math.floor(rnd()*5),0)}
+    zn.cracks=lines})}
+const TOT_C=ZN.reduce((a,z)=>a+z.z.c,0),TOT_S=ZN.reduce((a,z)=>a+z.z.s,0);
+// striping items (restripe stage); each is a few polylines drawn as one path
+const ITEMS=(()=>{const ST=D.str,it=[];
+  const add=(parts,col,fill)=>{const p0=parts[0].pts;it.push({parts,col,fill,y:p0.reduce((a,p)=>a+p[1],0)/p0.length,x:p0.reduce((a,p)=>a+p[0],0)/p0.length})};
+  ST.stall.forEach(l=>add([{pts:l}],'#fff'));ST.div.forEach(l=>add([{pts:l}],'#fff'));
+  ST.dash.forEach(l=>{const L=Math.hypot(l[1][0]-l[0][0],l[1][1]-l[0][1]),n=Math.floor(L/16);
+    for(let i=0;i<=n;i++){const a=i*16/L,b=Math.min((i*16+8)/L,1),q=t=>[l[0][0]+(l[1][0]-l[0][0])*t,l[0][1]+(l[1][1]-l[0][1])*t];if(a<1)add([{pts:[q(a),q(b)]}],'#fff')}});
+  ST.ada.sp.forEach(pair=>pair.forEach(l=>add([{pts:l}],BLU)));
+  ST.ada.ai.forEach(p=>add([{pts:p,closed:1}],BLU,'url(#hatchB)'));
+  {const c=ST.cw,parts=[{pts:c,closed:1}],n=Math.max(2,Math.round(Math.hypot(c[1][0]-c[0][0],c[1][1]-c[0][1])/5));
+    for(let i=1;i<n;i++){const t=i/n;parts.push({pts:[[c[0][0]+(c[1][0]-c[0][0])*t,c[0][1]+(c[1][1]-c[0][1])*t],[c[3][0]+(c[2][0]-c[3][0])*t,c[3][1]+(c[2][1]-c[3][1])*t]]})}
+    add(parts,'#fff')}
+  ST.np.forEach(p=>add([{pts:p,closed:1}],'#fff','url(#hatchW)'));
+  it.sort((a,b)=>(b.y-a.y)||(a.x-b.x));
+  it.forEach((e,i)=>{e.t0=19.2+i/it.length*3.7});
+  return it})();
+const partsD=it=>it.parts.map(p=>pd(p.pts,0,p.closed?true:false)).join('');
+const BORIENT=Math.sign(D.bld.reduce((a,p,i)=>{const q=D.bld[(i+1)%D.bld.length];return a+p[0]*q[1]-q[0]*p[1]},0));
+
+/* ---------- one drawing (existing copy A has no zones/tags/stripes) ---------- */
+function Drawing(id,full){
+  const root=$(id),defs=mk(root,'defs'),L={};
+  ['lot','xl','zf','seal','strp','zl','walk','enc','isl','land','shadow','prop','bld','can','tags'].forEach(n=>L[n]=mk(root,'g'));
+  const polys=[];let propP=0;
+  const lotClip=mk(mk(defs,'clipPath',{id:id+'-lot'}),'path');   // nothing is drawn outside the property line
+  ['walk','enc','isl','land'].forEach(n=>L[n].setAttribute('clip-path','url(#'+id+'-lot)'));
+  const poly=(layer,data,z,attrs,t0,d)=>{const e=mk(layer,'path',Object.assign({pathLength:1,'stroke-linejoin':'round'},attrs));polys.push({e,data,z,t0,d});return e};
+  const lot=mk(L.lot,'path',{fill:'#A9ABAD'});
+  const xl=mk(L.xl,'path',{fill:'none',stroke:'#fff','stroke-width':1});
+  D.walks.forEach((p,i)=>poly(L.walk,p,0,{fill:'#E4E6E8',stroke:'#C9CDD1','stroke-width':.8},.5+.08*i,1.1));
+  // dumpster enclosure left out of the diagram
+  D.isl.forEach((p,i)=>poly(L.isl,p,0,{fill:'#C9D6C4',stroke:'#8FA588','stroke-width':1.25},.6+.05*i,1));
+  D.land.forEach((p,i)=>poly(L.land,p,0,{fill:'#C9D6C4',stroke:'#8FA588','stroke-width':1.25},.9+.05*i,1));
+  const prop=mk(L.prop,'path',{fill:'none',stroke:INK,'stroke-width':1.25,'stroke-linecap':'round','stroke-linejoin':'round'});
+  const shadow=mk(L.shadow,'path',{fill:INK});
+  const roof=poly(L.bld,D.bld,BH,{fill:'url(#roofTex)',stroke:INK,'stroke-width':1},.9,1.2);
+  const walls=D.bld.map(()=>{const g=mk(L.bld,'g',{'stroke-linejoin':'round'});return{g,br:mk(g,'path',{stroke:INK,'stroke-width':.7}),gl:mk(g,'path',{stroke:INK,'stroke-width':.7}),mu:mk(g,'path',{fill:'none',stroke:'#2E2822','stroke-width':.6}),fa:mk(g,'path',{fill:'#3A332D',stroke:INK,'stroke-width':1})}});
+  const canS=poly(L.can,D.can,CZ,{fill:'#FFFFFF',stroke:'#C9A000','stroke-width':2},1.3,.6);
+  const canSh=mk(L.shadow,'path',{fill:INK});
+  canS.setAttribute('display','none');canSh.setAttribute('display','none');   // drive-thru canopy left out of the diagram
+  // full-only parts
+  let seal,sealCP,zs=[],ss=[],tagsOn=full;
+  if(full){
+    seal=mk(L.seal,'path',{fill:'#34363A','clip-path':'url(#'+id+'-seal)'});
+    const scp=mk(defs,'clipPath',{id:id+'-seal'});
+    sealCP=[0,1,2].map(()=>mk(scp,'polygon'));
+    ZN.forEach((zn,i)=>{
+      const cp=mk(mk(defs,'clipPath',{id:id+'-z'+i}),'polygon');
+      const hf=mk(L.zf,'path',{fill:'url(#hatchY)'}),dk=mk(L.zf,'path',{fill:'#26282B',opacity:.72,'clip-path':'url(#'+id+'-z'+i+')'});
+      const ck=mk(L.zf,'path',{fill:'none',stroke:'#2B2E33','stroke-width':.8,'stroke-linecap':'round','stroke-linejoin':'round'}),
+            sl=mk(L.zf,'path',{fill:'none',stroke:'#0B0C0D','stroke-width':1.9,'stroke-linecap':'round','stroke-linejoin':'round',pathLength:1});
+      const hl=mk(L.zl,'path',{fill:'none',stroke:YEL,'stroke-width':4,'stroke-linejoin':'round',pathLength:1}),
+            ol=mk(L.zl,'path',{fill:'none',stroke:INK,'stroke-width':1.25,'stroke-linejoin':'round',pathLength:1});
+      const tg=mk(L.tags,'g',{'pointer-events':'none'});
+      const ld=mk(tg,'line',{stroke:INK,'stroke-width':1}),dot=mk(tg,'circle',{r:2.5,fill:INK}),
+            bg=mk(tg,'rect',{fill:'#F6F7F8','fill-opacity':.94,stroke:INK,'stroke-width':1}),bar=mk(tg,'rect',{width:4}),
+            t1=mk(tg,'text',{fill:INK}),t2=mk(tg,'text',{fill:INK});
+      zs.push({zn,cp,hf,dk,ck,sl,hl,ol,tg,ld,dot,bg,bar,t1,t2,tag:null});
+    });
+    ITEMS.forEach(it=>{const e=mk(L.strp,'path',{pathLength:1,fill:it.fill||'none',stroke:it.col,'stroke-width':it.col===BLU?2.2:1.8,'stroke-linejoin':'round'});ss.push({it,e})});
+  }
+  /* -- geometry for the current view -- */
+  function layout(){
+    S(lot,'d',pd(D.prop));S(lotClip,'d',pd(D.prop));S(xl,'d',ITEMS.map(partsD).join(''));
+    polys.forEach(r=>S(r.e,'d',pd(r.data,r.z)));
+    // building prism: outward faces only, far to near, two shades
+    const sh=V.sc*V.zs;
+    const q=D.bld;let order=[];
+    for(let i=0;i<q.length;i++){const a=q[i],b=q[(i+1)%q.length],dx=b[0]-a[0],dy=b[1]-a[1],
+      nx=BORIENT>0?dy:-dy,ny=BORIENT>0?-dx:dx,nv=nx*V.s+ny*V.c,nu=nx*V.c-ny*V.s;
+      order.push({i,a,b,vis:nv<0&&V.zs>.03,depth:(a[0]+b[0])*V.s/2+(a[1]+b[1])*V.c/2,lit:nu<0})}
+    order.sort((m,n)=>n.depth-m.depth);
+    const GF=13,GT=27.5;
+    order.forEach(o=>{const w=walls[o.i];if(!o.vis){S(w.g,'display','none');return}
+      S(w.g,'display','inline');
+      const quad=(z0,z1)=>pd([o.a,o.b],z0,false)+'L'+pd([o.b],z1,false).slice(1)+'L'+pd([o.a],z1,false).slice(1)+'Z';
+      S(w.br,'d',quad(0,GF));S(w.br,'fill',o.lit?'#A9634A':'#84503D');
+      S(w.gl,'d',quad(GF,GT));S(w.gl,'fill',o.lit?'#8A7550':'#66563C');
+      S(w.fa,'d',quad(GT,BH));
+      const lw=Math.hypot(o.b[0]-o.a[0],o.b[1]-o.a[1]),n=Math.max(1,Math.round(lw/6));let m='';
+      for(let k=1;k<n;k++){const t=k/n,x=o.a[0]+(o.b[0]-o.a[0])*t,y=o.a[1]+(o.b[1]-o.a[1])*t;m+=pd([[x,y]],GF,false)+'L'+pd([[x,y]],GT,false).slice(1)}
+      L.bld.appendChild(w.g)});
+    L.bld.appendChild(roof);
+    // canopy in front of or behind the building, depending on the view
+    {const dep=p=>p.reduce((a,q)=>a+q[0]*V.s+q[1]*V.c,0)/p.length;if(dep(D.can)>dep(D.bld))root.insertBefore(L.can,L.bld);else root.insertBefore(L.can,L.bld.nextSibling)}
+    // flat offset shadows (building + canopy)
+    const off=(poly,z)=>{const dx=.5*z*sh,dy=.12*z*sh;let s='';poly.forEach((p,i)=>{const t=P(p[0],p[1],0);s+=(i?'L':'M')+f1(t[0]+dx)+' '+f1(t[1]+dy)});return s+'Z'};
+    S(shadow,'d',off(D.bld,BH));S(canSh,'d',off(D.can,CZ));
+    S(prop,'d',propD(propP));
+    if(full){
+      S(seal,'d',pd(D.prop));
+      ss.forEach(x=>S(x.e,'d',partsD(x.it)));
+      zs.forEach(z=>{const d=z.zn.polys.map(p=>pd(p)).join('');['hf','dk','hl','ol'].forEach(k=>S(z[k],'d',d));
+        const cd=z.zn.cracks.map(l=>pd(l,0,false)).join('');S(z.ck,'d',cd);S(z.sl,'d',cd)});
+      layoutTags();
+    }
+  }
+  function propD(p){const lim=p*propRuns.total;let s='';
+    for(const r of propRuns.runs){if(r[0]>=lim)break;const a=r[0],b=Math.min(r[1],lim);s+=pd(propRuns.sub(a,b),0,false)}
+    return s}
+  function layoutTags(){
+    const placed=[],c=P(0,0,0),lc=P(-10,30,0),outDir=z=>{const a=P(z.zn.z.a[0],z.zn.z.a[1],0),dx=a[0]-lc[0],dy=a[1]-lc[1],l=Math.hypot(dx,dy)||1;return[dx/l,dy/l]};
+    const fs=11,cw=mono*fs/10,two=W<640,lotPx=D.prop.map(p=>P(p[0],p[1],0));
+    zs.forEach((z,zi)=>{const zn=z.zn,a=P(zn.z.a[0],zn.z.a[1],0),o=outDir(z),
+      w=24,h=19;let best=null,bc=1e9;
+      for(const dist of[34,60,92,130,175])for(let k=0;k<8;k++){const ag=k*Math.PI/4,dx=Math.cos(ag),dy=Math.sin(ag);
+        const rx=a[0]+(dx>.35?dist*dx:dx<-.35?dist*dx-w:dist*dx-w/2),ry=a[1]+(dy>.35?dist*dy:dy<-.35?dist*dy-h:dist*dy-h/2);
+        if(rx<5||ry<5||rx+w>W-5||ry+h>H-5)continue;
+        const hit=(r,pad)=>rx<r.x+r.w+pad&&rx+w>r.x-pad&&ry<r.y+r.h+pad&&ry+h>r.y-pad;
+        if(placed.some(r=>hit(r,5))||RES.some(r=>hit(r,6)))continue;
+        let cost=dist+(1-(dx*o[0]+dy*o[1]))*34+(inPoly(rx+w/2,ry+h/2,lotPx)?28:0);
+        if(cost<bc){bc=cost;best={x:rx,y:ry,w,h}}}
+      if(!best)best={x:clamp(a[0]+34,5,W-w-5),y:clamp(a[1]-h-10,5,H-h-5),w,h};
+      placed.push(best);z.tag=best;
+      const lx=clamp(a[0],best.x,best.x+w),ly=clamp(a[1],best.y,best.y+h);
+      S(z.ld,'x1',f1(a[0]));S(z.ld,'y1',f1(a[1]));S(z.ld,'x2',f1(lx));S(z.ld,'y2',f1(ly));
+      S(z.dot,'cx',f1(a[0]));S(z.dot,'cy',f1(a[1]));
+      S(z.bg,'x',f1(best.x));S(z.bg,'y',f1(best.y));S(z.bg,'width',f1(w));S(z.bg,'height',h);
+      S(z.bar,'x',f1(best.x));S(z.bar,'y',f1(best.y));S(z.bar,'height',h);
+      S(z.t1,'x',f1(best.x+10));S(z.t1,'font-size',fs);S(z.t2,'x',f1(best.x+10));S(z.t2,'font-size',fs);
+      S(z.t1,'x',f1(best.x+14));S(z.t1,'text-anchor','middle');S(z.t1,'font-weight',600);S(z.t1,'y',f1(best.y+h/2+fs*.36));
+      z.t1.textContent=String(zi+1);z.t2.textContent='';z.tg.setAttribute('aria-label','Repair zone '+(zi+1));
+    })}
+  /* -- state for time t -- */
+  function update(t){
+    const fo=r3(ease(seg(t,1.6,.9)));
+    S(lot,'fill-opacity',fo);S(xl,'stroke-opacity',r3(fo*.5));
+    polys.forEach(r=>{const p=r3(seg(t,r.t0,r.d));S(r.e,'fill-opacity',fo);
+      if(p>=1){S(r.e,'stroke-dasharray','none')}else{S(r.e,'stroke-dasharray','1');S(r.e,'stroke-dashoffset',r3(1-p))}});
+    walls.forEach(w=>S(w.g,'opacity',fo));
+    S(shadow,'fill-opacity',r3(.13*fo));S(canSh,'fill-opacity',r3(.09*fo));
+    const pp=r3(seg(t,.1,1.5));if(pp!==propP||!prop._c.d){propP=pp;S(prop,'d',propD(pp))}
+    if(!full)return;
+    // steps 2-3: repair areas
+    const sealP=[0,1,2].map(j=>r3(ease(seg(t,14.2+j*.3,3.6)))),sAvg=(sealP[0]+sealP[1]+sealP[2])/3;
+    zs.forEach((z,i)=>{const a=r3(ease(seg(t,4.3+i*.55,.5))),f=r3(seg(t,9.1+i*.5,1.2)),w=r3(seg(t,10.1+i*.5,.8));
+      const vis=a>0,disp=vis?'inline':'none';
+      [z.hf,z.ck,z.hl,z.ol,z.tg].forEach(e=>S(e,'display',disp));S(z.dk,'display',w>0?'inline':'none');S(z.sl,'display',f>0?'inline':'none');
+      if(f>0){if(f>=1)S(z.sl,'stroke-dasharray','none');else{S(z.sl,'stroke-dasharray','1');S(z.sl,'stroke-dashoffset',r3(1-f))}}
+      if(!vis)return;
+      S(z.hf,'opacity',r3(a*(1-w)));S(z.ck,'opacity',a);S(z.hl,'opacity',r3(a*(1-clamp(w*3))));S(z.ol,'opacity',r3(a*(1-sAvg)));
+      [z.hl,z.ol].forEach(e=>{if(a>=1)S(e,'stroke-dasharray','none');else{S(e,'stroke-dasharray','1');S(e,'stroke-dashoffset',r3(1-a))}});
+      const b=z.zn.b,ax=z.zn.axis,pad=3,lo=b[ax]-pad,len=b[ax+2]-b[ax]+2*pad,hi=lo+len*w;
+      S(z.cp,'points',ax?pts([[b[0]-pad,lo],[b[2]+pad,lo],[b[2]+pad,hi],[b[0]-pad,hi]]):pts([[lo,b[1]-pad],[hi,b[1]-pad],[hi,b[3]+pad],[lo,b[3]+pad]]));
+      S(z.tg,'opacity',r3(seg(a,.4,.6)*(1-.55*sAvg)*(1-seg(t,19,.8))));S(z.bar,'fill',w>.5?INK:YEL);
+    });
+    // step 4 sealcoating: three passes along the lot's long (plan y) axis
+    S(seal,'display',sAvg>0?'inline':'none');
+    for(let j=0;j<3;j++){const xa=-200+j*121-(j?1:0),xb=-200+(j+1)*121+1,y0=-190,y1=y0+sealP[j]*440;
+      S(sealCP[j],'points',pts([[xa,y0],[xb,y0],[xb,y1],[xa,y1]]))}
+    // step 5 line striping
+    ss.forEach(s=>{const p=r3(seg(t,s.it.t0,.45));S(s.e,'display',p>0?'inline':'none');
+      if(p>=1)S(s.e,'stroke-dasharray','none');else{S(s.e,'stroke-dasharray','1');S(s.e,'stroke-dashoffset',r3(1-p))}
+      if(s.it.fill)S(s.e,'fill-opacity',r3(clamp(p*1.4-.4)))});
+  }
+  return{layout,update,root};
+}
+const B=Drawing('gB',true);
+
+/* ---------- sizing ---------- */
+function measure(){
+  const r=$('draw').getBoundingClientRect();W=r.width;H=r.height;
+  svg.setAttribute('viewBox','0 0 '+W+' '+H);
+  const m=W<640;
+  AREA=m?{l:14,t:70,r:W-14,b:H-70}:{l:28,t:44,r:W-28,b:H-118};
+  if(!m){const a=$('act').getBoundingClientRect();
+    if(W>=1000)AREA.r=a.left-r.left-24;            // wide: panel and title block share a right-hand column
+    else AREA.t=a.bottom-r.top+16}
+  RES=[$('ctl'),$('tb')].map(e=>{const q=e.getBoundingClientRect();return{x:q.left-r.left,y:q.top-r.top,w:q.width,h:q.height}});
+  const mt=$('meas');mt.setAttribute('visibility','visible');const w=mt.getComputedTextLength();mt.setAttribute('visibility','hidden');
+  if(w>0)mono=w/20;   // advance width per char at 10px
+  sizeVer++;
+}
+
+/* ---------- render ---------- */
+let lastL=-1,lastSV=-1,lastVV=-1,lastTxt={};
+function setTxt(id,html){if(lastTxt[id]!==html){lastTxt[id]=html;$(id).innerHTML=html}}
+function render(){
+  const tt=Math.min(T,dur),Lf=lift(tt);
+  if(Lf!==lastL||sizeVer!==lastSV||viewVer!==lastVV){setView(Lf);B.layout();lastL=Lf;lastSV=sizeVer;lastVV=viewVer}
+  B.update(tt);
+  svg.style.opacity=T>dur+HOLD-FADE?r3(clamp((dur+HOLD-T)/FADE)):1;
+  const si=stageAt(tt),st=STAGES[si];
+  setTxt('stg',st.id+' · '+st.nm);setTxt('sid',(si+1)+' of '+(addons?5:3));setTxt('snm',st.nm);
+  let lab='Scope',val='&nbsp;';
+  if(si===0){val='&mdash;'}
+  else if(si===1){let c=0,s=0;ZN.forEach((zn,i)=>{const a=ease(seg(tt,4.3+i*.55,.5));c+=zn.z.c*a;s+=zn.z.s*a});
+    lab='Repair areas';val='<m>'+Math.round(c)+' areas · '+Math.round(s)+' SF</m>'}
+  else if(si===2){lab='Priced in proposal';val='<m>'+TOT_S+' SF</m> asphalt repair'}
+  else if(si===3){lab='Listed in proposal, not priced';val='Crack fill + sealcoating'}
+  else{lab='Listed in proposal, not priced';val='Line striping'}
+  setTxt('scl',lab);setTxt('scv',val);
+  {const A=ACTS[si],t0=st.t0,t1=si<4&&(si<2||addons)?STAGES[si+1].t0:dur,q=clamp((tt-t0)/((t1-t0)*.9||1)),n=A.a.length,cur=Math.min(n-1,Math.floor(q*n));
+   setTxt('actK','Step '+(si+1)+' of '+(addons?5:3));setTxt('actH',A.h);
+   setTxt('actL',A.a.map((x,i)=>'<li class="'+(i<cur?'done':i===cur?'on':'')+'">'+x+'</li>').join(''));
+   const tg=$('actT');if(tg.hidden!==!A.np)tg.hidden=!A.np}
+  $('tm').textContent=(tt<10?'0':'')+tt.toFixed(1)+' s';
+  const pr=dur?Math.min(tt/dur,1):0;
+  $('fill').style.width=(pr*100)+'%';
+  $('rng').value=tt;
+  if(si!==lastStage){lastStage=si;buildTicks()}
+}
+let lastStage=-1;
+let dragging=false;
+
+/* ---------- loop: rAF only while playing and visible ---------- */
+function tick(now){raf=0;if(!playing||document.hidden)return;
+  __frames++;const dt=Math.min((now-last)/1000,.1);last=now;T+=dt;if(T>=dur+HOLD)T-=dur+HOLD;
+  render();raf=requestAnimationFrame(tick)}
+function start(){if(!raf&&playing&&!document.hidden){last=performance.now();raf=requestAnimationFrame(tick)}}
+function stop(){if(raf){cancelAnimationFrame(raf);raf=0}}
+function setPlaying(p){playing=p;const b=$('play');b.textContent=p?'Pause':'Play';b.setAttribute('aria-pressed',p);if(p){if(T>=dur+HOLD-FADE)T=0;start()}else stop()}
+function setTime(s){T=clamp(s,0,dur+HOLD);render()}
+document.addEventListener('visibilitychange',()=>{if(document.hidden)stop();else start()});
+
+/* ---------- UI ---------- */
+function buildTicks(){
+  $('ticks').innerHTML='';
+  STAGES.forEach((s,i)=>{if(s.add&&!addons)return;const b=document.createElement('button');b.type='button';b.className='tk';
+    b.textContent=String(i+1).padStart(2,'0');b.title=s.id+' '+s.nm;b.style.left=(s.t0/dur*100)+'%';
+    b.addEventListener('click',()=>{setTime(s.t0);if(!playing)return;last=performance.now()});$('ticks').appendChild(b)});
+  const si=stageAt(Math.min(T,dur));document.querySelectorAll('.tk').forEach(b=>b.classList.toggle('on',+b.textContent===si+1))
+}
+function setAddons(on){addons=on;dur=on?24:14;const b=$('addons');b.textContent='Unpriced items '+(on?'on':'off');b.setAttribute('aria-pressed',on);
+  $('rng').max=dur;if(T>dur+HOLD)T=dur;buildTicks();render()}
+$('play').addEventListener('click',()=>setPlaying(!playing));
+$('addons').addEventListener('click',()=>setAddons(!addons));
+let wasPlaying=false;
+$('rng').addEventListener('pointerdown',()=>{dragging=true;wasPlaying=playing;stop()});
+const endDrag=()=>{if(!dragging)return;dragging=false;if(wasPlaying&&playing)start()};
+addEventListener('pointerup',endDrag);addEventListener('pointercancel',endDrag);
+$('rng').addEventListener('input',e=>{setTime(+e.target.value)});
+// orbit / pan / zoom
+function zoomAt(f,X,Y){const r=$('draw').getBoundingClientRect();X-=r.left;Y-=r.top;const cx=(AREA.l+AREA.r)/2,cy=(AREA.t+AREA.b)/2;
+  const z1=clamp(CAM.zoom*f,.5,5),g=z1/CAM.zoom;CAM.px=X-cx-(X-cx-CAM.px)*g;CAM.py=Y-cy-(Y-cy-CAM.py)*g;CAM.zoom=z1}
+const bump=()=>{viewVer++;if(!playing||!raf)render()};
+function resetView(){Object.assign(CAM,CAM0);bump()}
+$('rv').addEventListener('click',resetView);
+(function(){const el=$('draw'),ptr=new Map();let mode=null,lx=0,ly=0,pd0=0;
+  el.addEventListener('contextmenu',e=>e.preventDefault());
+  el.addEventListener('pointerdown',e=>{el.setPointerCapture(e.pointerId);ptr.set(e.pointerId,[e.clientX,e.clientY]);
+    if(ptr.size>1){const v=[...ptr.values()];mode='pinch';pd0=Math.hypot(v[0][0]-v[1][0],v[0][1]-v[1][1]);lx=(v[0][0]+v[1][0])/2;ly=(v[0][1]+v[1][1])/2}
+    else{mode=(e.button===2||e.shiftKey)?'pan':'orbit';lx=e.clientX;ly=e.clientY}
+    el.classList.add('grab')});
+  el.addEventListener('pointermove',e=>{if(!ptr.has(e.pointerId))return;ptr.set(e.pointerId,[e.clientX,e.clientY]);
+    if(mode==='pinch'){if(ptr.size<2)return;const v=[...ptr.values()],d=Math.hypot(v[0][0]-v[1][0],v[0][1]-v[1][1]),mx=(v[0][0]+v[1][0])/2,my=(v[0][1]+v[1][1])/2;
+      zoomAt(d/(pd0||d),mx,my);pd0=d;CAM.px+=mx-lx;CAM.py+=my-ly;lx=mx;ly=my;bump();return}
+    const dx=e.clientX-lx,dy=e.clientY-ly;lx=e.clientX;ly=e.clientY;
+    if(mode==='pan'){CAM.px+=dx;CAM.py+=dy}else{CAM.az=(CAM.az+dx*.35)%360;CAM.el=clamp(CAM.el+dy*.25,12,90)}
+    bump()});
+  const up=e=>{ptr.delete(e.pointerId);if(!ptr.size){mode=null;el.classList.remove('grab')}else if(mode==='pinch'){mode='orbit';const v=[...ptr.values()][0];lx=v[0];ly=v[1]}};
+  el.addEventListener('pointerup',up);el.addEventListener('pointercancel',up);
+  el.addEventListener('wheel',e=>{e.preventDefault();zoomAt(Math.exp(-e.deltaY*.0015),e.clientX,e.clientY);bump()},{passive:false});
+  el.addEventListener('dblclick',resetView);
+})();
+// keys
+addEventListener('keydown',e=>{if(e.metaKey||e.ctrlKey||e.altKey)return;
+  if(e.key===' '&&!/^(BUTTON|INPUT)$/.test(e.target.tagName)){e.preventDefault();setPlaying(!playing)}
+  else if(e.key>='1'&&e.key<='5'){const s=STAGES[+e.key-1];if(s.add&&!addons)return;setTime(s.t0);if(playing)start()}});
+
+/* ---------- boot ---------- */
+function layoutAll(){measure();lastSV=-1;render()}
+let rz=0;
+new ResizeObserver(()=>{if(rz)return;rz=requestAnimationFrame(()=>{rz=0;layoutAll()})}).observe($('draw'));
+if(document.fonts&&document.fonts.ready)document.fonts.ready.then(()=>{layoutAll()});
+const reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
+measure();buildTicks();
+if(reduce){playing=false;T=14;$('play').textContent='Play';$('play').setAttribute('aria-pressed',false)}
+render();
+if(playing)start();
+window.__setTime=s=>{setTime(s);buildTicks()};
+window.__play=p=>setPlaying(!!p);
+window.__cam=CAM;window.__view=()=>{viewVer++;render()};
+window.__lite={get T(){return T},get playing(){return playing},get dur(){return dur}};
+})();
+</script>
+</body>
+</html>

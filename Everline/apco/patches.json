@@ -1,0 +1,461 @@
+{
+ "source": "proposal.pdf pages 3-5",
+ "total_sqft": 787.0,
+ "patches": [
+  {
+   "name": "Back drive lane",
+   "w": 4.0,
+   "l": 2.0,
+   "area": 8.0,
+   "xy": [
+    141.04,
+    182
+   ],
+   "rot": 181.5,
+   "zone": "Back drive lane",
+   "status": "draft"
+  },
+  {
+   "name": "Back drive lane 2",
+   "w": 3.0,
+   "l": 6.0,
+   "area": 18.0,
+   "xy": [
+    141.94,
+    152
+   ],
+   "rot": 91.5,
+   "zone": "Back drive lane",
+   "status": "draft"
+  },
+  {
+   "name": "Back drive lane 3",
+   "w": 5.0,
+   "l": 5.0,
+   "area": 25.0,
+   "xy": [
+    142.78,
+    124
+   ],
+   "rot": 91.5,
+   "zone": "Back drive lane",
+   "status": "draft"
+  },
+  {
+   "name": "Back drive lane 4",
+   "w": 5.0,
+   "l": 5.0,
+   "area": 25.0,
+   "xy": [
+    143.56,
+    98
+   ],
+   "rot": 91.5,
+   "zone": "Back drive lane",
+   "status": "draft"
+  },
+  {
+   "name": "Back drive lane 5",
+   "w": 1.0,
+   "l": 1.0,
+   "area": 1.0,
+   "xy": [
+    144.4,
+    70
+   ],
+   "rot": 91.5,
+   "zone": "Back drive lane",
+   "status": "draft"
+  },
+  {
+   "name": "Back drive lane 6",
+   "w": 3.0,
+   "l": 8.0,
+   "area": 24.0,
+   "xy": [
+    145.18,
+    44
+   ],
+   "rot": 91.5,
+   "zone": "Back drive lane",
+   "status": "draft"
+  },
+  {
+   "name": "Back drive lane 7",
+   "w": 3.0,
+   "l": 7.0,
+   "area": 21.0,
+   "xy": [
+    146.02,
+    16
+   ],
+   "rot": 91.5,
+   "zone": "Back drive lane",
+   "status": "draft"
+  },
+  {
+   "name": "Back drive lane 8",
+   "w": 3.0,
+   "l": 10.0,
+   "area": 30.0,
+   "xy": [
+    146.92,
+    -14
+   ],
+   "rot": 91.5,
+   "zone": "Back drive lane",
+   "status": "draft"
+  },
+  {
+   "name": "Back drive lane 9",
+   "w": 3.0,
+   "l": 10.0,
+   "area": 30.0,
+   "xy": [
+    147.82,
+    -44
+   ],
+   "rot": 91.5,
+   "zone": "Back drive lane",
+   "status": "draft"
+  },
+  {
+   "name": "Back drive lane 10",
+   "w": 6.0,
+   "l": 12.0,
+   "area": 72.0,
+   "xy": [
+    148.84,
+    -78
+   ],
+   "rot": 91.5,
+   "zone": "Back drive lane",
+   "status": "draft"
+  },
+  {
+   "name": "Back entrance 1",
+   "w": 5.0,
+   "l": 8.0,
+   "area": 40.0,
+   "xy": [
+    139,
+    -101
+   ],
+   "rot": 90,
+   "zone": "Back entrance",
+   "status": "draft"
+  },
+  {
+   "name": "Back entrance 2",
+   "w": 4.0,
+   "l": 2.0,
+   "area": 8.0,
+   "xy": [
+    147,
+    -109
+   ],
+   "rot": 90,
+   "zone": "Back entrance",
+   "status": "draft"
+  },
+  {
+   "name": "Back entrance 3",
+   "w": 3.0,
+   "l": 4.0,
+   "area": 12.0,
+   "xy": [
+    139,
+    -116
+   ],
+   "rot": 0,
+   "zone": "Back entrance",
+   "status": "draft"
+  },
+  {
+   "name": "Drive through 1",
+   "w": 2.0,
+   "l": 15.0,
+   "area": 30.0,
+   "xy": [
+    88,
+    22
+   ],
+   "rot": 90,
+   "zone": "Drive through",
+   "status": "draft"
+  },
+  {
+   "name": "Drive through 2",
+   "w": 5.0,
+   "l": 3.0,
+   "area": 15.0,
+   "xy": [
+    100,
+    33
+   ],
+   "rot": 90,
+   "zone": "Drive through",
+   "status": "draft"
+  },
+  {
+   "name": "Drive through 3",
+   "w": 2.0,
+   "l": 2.0,
+   "area": 4.0,
+   "xy": [
+    108,
+    14
+   ],
+   "rot": 0,
+   "zone": "Drive through",
+   "status": "draft"
+  },
+  {
+   "name": "Drive through 4",
+   "w": 2.0,
+   "l": 2.0,
+   "area": 4.0,
+   "xy": [
+    116,
+    26
+   ],
+   "rot": 0,
+   "zone": "Drive through",
+   "status": "draft"
+  },
+  {
+   "name": "Entrance",
+   "w": 5.0,
+   "l": 8.0,
+   "area": 40.0,
+   "xy": [
+    56,
+    219
+   ],
+   "rot": 90,
+   "zone": "Entrance",
+   "status": "draft"
+  },
+  {
+   "name": "Entrance 2",
+   "w": 3.0,
+   "l": 3.0,
+   "area": 9.0,
+   "xy": [
+    64,
+    211
+   ],
+   "rot": 0,
+   "zone": "Entrance",
+   "status": "draft"
+  },
+  {
+   "name": "Entrance 3",
+   "w": 2.0,
+   "l": 8.0,
+   "area": 16.0,
+   "xy": [
+    49,
+    208
+   ],
+   "rot": 90,
+   "zone": "Entrance",
+   "status": "draft"
+  },
+  {
+   "name": "Entrance 4",
+   "w": 2.0,
+   "l": 2.0,
+   "area": 4.0,
+   "xy": [
+    60,
+    203
+   ],
+   "rot": 0,
+   "zone": "Entrance",
+   "status": "draft"
+  },
+  {
+   "name": "Entrance 5",
+   "w": 2.0,
+   "l": 5.0,
+   "area": 10.0,
+   "xy": [
+    72,
+    205
+   ],
+   "rot": 90,
+   "zone": "Entrance",
+   "status": "draft"
+  },
+  {
+   "name": "Entrance 6",
+   "w": 5.0,
+   "l": 5.0,
+   "area": 25.0,
+   "xy": [
+    44,
+    200
+   ],
+   "rot": 0,
+   "zone": "Entrance",
+   "status": "draft"
+  },
+  {
+   "name": "Entrance 7",
+   "w": 3.0,
+   "l": 6.0,
+   "area": 18.0,
+   "xy": [
+    82,
+    201
+   ],
+   "rot": 0,
+   "zone": "Entrance",
+   "status": "draft"
+  },
+  {
+   "name": "Entrance 8",
+   "w": 5.0,
+   "l": 8.0,
+   "area": 40.0,
+   "xy": [
+    30,
+    201
+   ],
+   "rot": 0,
+   "zone": "Entrance",
+   "status": "draft"
+  },
+  {
+   "name": "Entrance 9",
+   "w": 4.0,
+   "l": 4.0,
+   "area": 16.0,
+   "xy": [
+    92,
+    205
+   ],
+   "rot": 0,
+   "zone": "Entrance",
+   "status": "draft"
+  },
+  {
+   "name": "Entrance 10",
+   "w": 3.0,
+   "l": 3.0,
+   "area": 9.0,
+   "xy": [
+    18,
+    202
+   ],
+   "rot": 0,
+   "zone": "Entrance",
+   "status": "draft"
+  },
+  {
+   "name": "Entrance 11",
+   "w": 3.0,
+   "l": 4.0,
+   "area": 12.0,
+   "xy": [
+    100,
+    198
+   ],
+   "rot": 0,
+   "zone": "Entrance",
+   "status": "draft"
+  },
+  {
+   "name": "Entrance 12",
+   "w": 5.0,
+   "l": 2.0,
+   "area": 10.0,
+   "xy": [
+    6,
+    200
+   ],
+   "rot": 90,
+   "zone": "Entrance",
+   "status": "draft"
+  },
+  {
+   "name": "Entrance 13",
+   "w": 4.0,
+   "l": 2.0,
+   "area": 8.0,
+   "xy": [
+    70,
+    197
+   ],
+   "rot": 90,
+   "zone": "Entrance",
+   "status": "draft"
+  },
+  {
+   "name": "Long drive 3",
+   "w": 4.0,
+   "l": 4.0,
+   "area": 16.0,
+   "xy": [
+    -161.39,
+    -40
+   ],
+   "rot": 92.5,
+   "zone": "Long drive lane",
+   "status": "draft"
+  },
+  {
+   "name": "Long drive lane",
+   "w": 5.0,
+   "l": 30.0,
+   "area": 150.0,
+   "xy": [
+    -157.1,
+    125
+   ],
+   "rot": 92.5,
+   "zone": "Long drive lane",
+   "status": "draft"
+  },
+  {
+   "name": "Long drive lane 2",
+   "w": 2.0,
+   "l": 2.0,
+   "area": 4.0,
+   "xy": [
+    -159.57,
+    30
+   ],
+   "rot": 92.5,
+   "zone": "Long drive lane",
+   "status": "draft"
+  },
+  {
+   "name": "Near back door",
+   "w": 12.0,
+   "l": 2.0,
+   "area": 24.0,
+   "xy": [
+    82,
+    -9
+   ],
+   "rot": 180,
+   "zone": "Near back door",
+   "status": "draft"
+  },
+  {
+   "name": "Parking area front",
+   "w": 3.0,
+   "l": 3.0,
+   "area": 9.0,
+   "xy": [
+    -104,
+    4
+   ],
+   "rot": 0,
+   "zone": "Parking area front",
+   "status": "draft"
+  }
+ ]
+}

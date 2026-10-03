@@ -1,0 +1,17 @@
+.DS_Store
+.claude/
+__pycache__/
+
+# Not ours to publish, or private:
+# client proposal (names, address, pricing)
+Everline/proposal.pdf
+# Google imagery: aerial underlay, Maps screenshots and markups, Street View captures
+Everline/apco/aerial-underlay.jpg
+Everline/apco/source/hires-plan-frame.jpg
+Everline/apco/source/measurements/
+Everline/apco/source/streetview/
+# SketchUp files store the home's location
+backyard/source/
+
+# Superseded heavy WebGPU version of the APCO animation
+Everline/apco/animation.html
